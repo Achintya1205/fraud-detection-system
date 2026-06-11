@@ -27,6 +27,7 @@ def load_model():
         'Achintya05/review-fraud-roberta')
     model.to(device)
     model.eval()
+    
     return model, tokenizer, device
 
 # ── Load data once at startup ─────────────────────────────────
