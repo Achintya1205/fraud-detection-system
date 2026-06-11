@@ -35,7 +35,7 @@ def load_model():
 
 @st.cache_data
 def load_data():
-    df = pd.read_csv('./processed_reviews.csv', low_memory=False)
+    df = pd.read_csv('./processed_reviews_slim.csv', compression='gzip', low_memory=False)
     graph_features = pd.read_csv('./graph_features.csv')
     fraud_rings = pd.read_csv('./fraud_rings.csv')
     return df, graph_features, fraud_rings
