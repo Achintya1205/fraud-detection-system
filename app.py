@@ -21,10 +21,8 @@ THRESHOLD = 0.40
 @st.cache_resource
 def load_model():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = RobertaForSequenceClassification.from_pretrained(
-        'Achintya05/review-fraud-roberta')
-    tokenizer = RobertaTokenizer.from_pretrained(
-        'Achintya05/review-fraud-roberta')
+    model     = RobertaForSequenceClassification.from_pretrained('Achintya05/review-fraud-roberta')
+    tokenizer = RobertaTokenizer.from_pretrained('Achintya05/review-fraud-roberta')
     model.to(device)
     model.eval()
     

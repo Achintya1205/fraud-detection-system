@@ -1,16 +1,15 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from api.models.loader import load_all
 from api.routes import predict, reviewer, graph, explain
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ── Startup — load model + data once ─────────────────────
     print("Starting up — loading model and data...")
     load_all()
     print("Startup complete")
     yield
-    # ── Shutdown ──────────────────────────────────────────────
     print("Shutting down")
 
 app = FastAPI(
@@ -20,11 +19,19 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# ── Routes ────────────────────────────────────────────────────
-app.include_router(predict.router,   prefix="/predict",  tags=["Prediction"])
-app.include_router(reviewer.router,  prefix="/reviewer", tags=["Reviewer"])
-app.include_router(graph.router,     prefix="/graph",    tags=["Graph"])
-app.include_router(explain.router,   prefix="/explain",  tags=["Explainability"])
+# ── CORS — allows React to talk to FastAPI ────────────────────
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(predict.router,  prefix="/predict",  tags=["Prediction"])
+app.include_router(reviewer.router, prefix="/reviewer", tags=["Reviewer"])
+app.include_router(graph.router,    prefix="/graph",    tags=["Graph"])
+app.include_router(explain.router,  prefix="/explain",  tags=["Explainability"])
 
 @app.get("/")
 def root():
