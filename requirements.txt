@@ -7,3 +7,7 @@ plotly
 lightgbm
 shap
 huggingface_hub
+uvicorn
+pydantic
+scikit-learn
+fastapi
