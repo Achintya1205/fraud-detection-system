@@ -1,13 +1,9 @@
-streamlit
-torch
+fastapi
+uvicorn
 transformers
+torch
 pandas
 numpy
-plotly
-lightgbm
-shap
 huggingface_hub
-uvicorn
 pydantic
 scikit-learn
-fastapi

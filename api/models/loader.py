@@ -21,7 +21,10 @@ def load_all():
     global model, tokenizer, df, graph_features, fraud_rings
 
     print(f"Loading model from {MODEL_NAME}...")
-    model = RobertaForSequenceClassification.from_pretrained(MODEL_NAME)
+    model = RobertaForSequenceClassification.from_pretrained(
+    MODEL_NAME,
+    torch_dtype=torch.float16,  # half precision — cuts memory ~50%
+    )
     model.to(device)
     model.eval()
 
