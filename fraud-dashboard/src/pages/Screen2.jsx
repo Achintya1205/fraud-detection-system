@@ -2,7 +2,7 @@ import { useState } from "react"
 import axios from "axios"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts"
 
-const API = "http://127.0.0.1:8000"
+const API = "https://Achintya05-fraud-detection-api.hf.space"
 
 function Screen2() {
   const [reviewerId, setReviewerId] = useState("")

@@ -5,6 +5,9 @@ __pycache__/
 roberta_model/
 processed_reviews.csv
 
+# HuggingFace Space
+hf-space/    
+
 # Node
 node_modules
 dist
