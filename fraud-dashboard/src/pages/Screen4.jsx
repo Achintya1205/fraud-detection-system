@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from "recharts"
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts"
 
-const API = "https://Achintya05-fraud-detection-api.hf.space"
+const API = "http://localhost:8000"
 
 function Screen4() {
   const [threshold,          setThreshold]          = useState(0.40)
@@ -12,7 +12,6 @@ function Screen4() {
   const [result,             setResult]             = useState(null)
   const [prCurve,            setPrCurve]            = useState([])
 
-  // Generate PR curve data
   useEffect(() => {
     const points = []
     for (let t = 0.05; t <= 0.95; t += 0.05) {
@@ -23,7 +22,6 @@ function Screen4() {
     setPrCurve(points)
   }, [])
 
-  // Fetch cost analysis when sliders change
   useEffect(() => {
     axios.get(`${API}/graph/cost-analysis`, {
       params: {
@@ -37,31 +35,33 @@ function Screen4() {
   }, [threshold, dailyVolume, investigationCost, fraudRate])
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-2">💰 Fraud Investigation Cost Calculator</h1>
-      <p className="text-gray-500 mb-6">Adjust parameters to estimate real-world investigation costs</p>
+    <div className="max-w-4xl mx-auto py-12 px-4">
+      <p className="text-[11px] tracking-[.18em] uppercase text-[#33d9c4] font-mono mb-2">Screen 04</p>
+      <h1 className="font-display text-2xl font-semibold mb-2">Investigation Cost Calculator</h1>
+      <p className="text-[#93a3b5] mb-6 text-sm">Adjust the threshold and business parameters to estimate real-world investigation costs.</p>
 
-      {/* Sliders */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-6">
         {[
-          { label: `Detection Threshold: ${threshold}`,          value: threshold,         set: setThreshold,         min: 0.10, max: 0.90, step: 0.05 },
-          { label: `Daily Review Volume: ${dailyVolume}`,        value: dailyVolume,       set: setDailyVolume,       min: 100,  max: 10000, step: 100 },
-          { label: `Investigation Cost: ₹${investigationCost}`,  value: investigationCost, set: setInvestigationCost, min: 10,   max: 500,   step: 10 },
-          { label: `Estimated Fraud Rate: ${fraudRate}%`,        value: fraudRate,         set: setFraudRate,         min: 1,    max: 20,    step: 1 },
+          { label: `Detection Threshold`, sub: threshold,          value: threshold,         set: setThreshold,         min: 0.10, max: 0.90, step: 0.05 },
+          { label: `Daily Review Volume`, sub: dailyVolume,        value: dailyVolume,       set: setDailyVolume,       min: 100,  max: 10000, step: 100 },
+          { label: `Investigation Cost`,  sub: `₹${investigationCost}`, value: investigationCost, set: setInvestigationCost, min: 10,   max: 500,   step: 10 },
+          { label: `Estimated Fraud Rate`,sub: `${fraudRate}%`,    value: fraudRate,         set: setFraudRate,         min: 1,    max: 20,    step: 1 },
         ].map(s => (
-          <div key={s.label} className="bg-white border border-gray-200 rounded-lg p-4">
-            <label className="text-sm font-medium text-gray-700 block mb-2">{s.label}</label>
+          <div key={s.label} className="panel panel-tight">
+            <div className="flex justify-between items-baseline mb-2">
+              <label className="text-xs font-medium text-[#93a3b5]">{s.label}</label>
+              <span className="font-mono text-sm text-[#33d9c4]">{s.sub}</span>
+            </div>
             <input
               type="range" min={s.min} max={s.max} step={s.step}
               value={s.value}
               onChange={e => s.set(parseFloat(e.target.value))}
-              className="w-full accent-blue-600"
+              className="w-full accent-[#33d9c4]"
             />
           </div>
         ))}
       </div>
 
-      {/* Metrics */}
       {result && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {[
@@ -70,43 +70,41 @@ function Screen4() {
             { label: "Daily Investigations", value: result.flagged_per_day },
             { label: "Monthly Cost",         value: `₹${result.cost_per_month.toLocaleString()}` },
           ].map(m => (
-            <div key={m.label} className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
-              <div className="text-xl font-bold">{m.value}</div>
-              <div className="text-xs text-gray-500 mt-1">{m.label}</div>
+            <div key={m.label} className="stat-card">
+              <div className="stat-value">{m.value}</div>
+              <div className="stat-label">{m.label}</div>
             </div>
           ))}
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-4 mb-6">
-        {/* PR Curve */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <h3 className="font-semibold text-sm mb-3">Precision-Recall Curve</h3>
+        <div className="panel panel-pad">
+          <h3 className="font-display font-semibold text-sm mb-3">Precision–Recall Curve</h3>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={prCurve}>
-              <XAxis dataKey="recall"    label={{ value: "Recall",    position: "insideBottom", offset: -2 }} tick={{ fontSize: 11 }} />
-              <YAxis dataKey="precision" label={{ value: "Precision", angle: -90, position: "insideLeft" }}  tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="precision" stroke="#2563eb" dot={false} strokeWidth={2} />
+              <XAxis dataKey="recall" stroke="#5f7186" label={{ value: "Recall", position: "insideBottom", offset: -2, fill:"#5f7186" }} tick={{ fontSize: 11, fill:"#5f7186" }} />
+              <YAxis dataKey="precision" stroke="#5f7186" label={{ value: "Precision", angle: -90, position: "insideLeft", fill:"#5f7186" }} tick={{ fontSize: 11, fill:"#5f7186" }} />
+              <Tooltip contentStyle={{ background:"#1a2430", border:"1px solid #2b3849", borderRadius:10, fontSize:12 }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Line type="monotone" dataKey="precision" stroke="#33d9c4" dot={false} strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Cost breakdown */}
         {result && (
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <h3 className="font-semibold text-sm mb-3">Daily Breakdown</h3>
+          <div className="panel panel-pad">
+            <h3 className="font-display font-semibold text-sm mb-3">Daily Breakdown</h3>
             <div className="space-y-3 text-sm">
               {[
-                { label: "✅ True Fraud Caught",  value: result.true_pos_per_day,  color: "text-green-600" },
-                { label: "⚠️ False Alarms",       value: result.false_pos_per_day, color: "text-yellow-600" },
-                { label: "❌ Missed Fraud",        value: result.missed_fraud,      color: "text-red-600" },
-                { label: "💰 Daily Cost",          value: `₹${result.cost_per_day.toLocaleString()}`, color: "text-blue-600" },
+                { label: "True Fraud Caught",  value: result.true_pos_per_day,  cls: "risk-low" },
+                { label: "False Alarms",       value: result.false_pos_per_day, cls: "risk-med" },
+                { label: "Missed Fraud",       value: result.missed_fraud,      cls: "risk-high" },
+                { label: "Daily Cost",         value: `₹${result.cost_per_day.toLocaleString()}`, cls: "text-[#33d9c4]" },
               ].map(r => (
                 <div key={r.label} className="flex justify-between">
-                  <span className="text-gray-600">{r.label}</span>
-                  <span className={`font-bold ${r.color}`}>{r.value}</span>
+                  <span className="text-[#5f7186]">{r.label}</span>
+                  <span className={`font-mono font-semibold ${r.cls}`}>{r.value}</span>
                 </div>
               ))}
             </div>
@@ -114,10 +112,9 @@ function Screen4() {
         )}
       </div>
 
-      {/* Insight */}
       {result && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-          💡 {result.insight}
+        <div className="panel panel-pad border border-[#33d9c4]/25 text-sm text-[#93a3b5]">
+          <span className="text-[#33d9c4] font-semibold">Insight — </span>{result.insight}
         </div>
       )}
     </div>

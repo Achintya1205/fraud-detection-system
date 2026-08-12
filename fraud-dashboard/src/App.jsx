@@ -9,7 +9,7 @@ function App() {
   const [active, setActive] = useState(1)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Navbar active={active} setActive={setActive} />
       <main>
         {active === 1 && <Screen1 />}

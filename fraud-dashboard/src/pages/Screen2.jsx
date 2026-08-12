@@ -1,8 +1,7 @@
 import { useState } from "react"
 import axios from "axios"
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts"
 
-const API = "https://Achintya05-fraud-detection-api.hf.space"
+const API = "http://localhost:8000"
 
 function Screen2() {
   const [reviewerId, setReviewerId] = useState("")
@@ -25,69 +24,59 @@ function Screen2() {
     }
   }
 
-  const verdictColor = (v) => {
-    if (v.includes("HIGH"))   return "bg-red-50 border-red-200 text-red-700"
-    if (v.includes("MEDIUM")) return "bg-yellow-50 border-yellow-200 text-yellow-700"
-    if (v.includes("LOW"))    return "bg-green-50 border-green-200 text-green-700"
-    return "bg-blue-50 border-blue-200 text-blue-700"
-  }
-
-  const ratingData = result ? [1,2,3,4,5].map(r => ({ rating: `${r}⭐`, count: 0 })) : []
-  const scoreColor = result?.fraud_score >= 0.65 ? "#dc2626" : result?.fraud_score >= 0.40 ? "#d97706" : "#16a34a"
+  const tier = (v) => v.includes("HIGH") ? "high" : v.includes("MEDIUM") ? "med" : v.includes("LOW") ? "low" : "med"
+  const scoreTier = result?.fraud_score >= 0.65 ? "high" : result?.fraud_score >= 0.40 ? "med" : "low"
 
   return (
-    <div className="max-w-3xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-2">👤 Reviewer Profile Analysis</h1>
-      <p className="text-gray-500 mb-6">Enter a reviewer ID to see their full fraud profile</p>
+    <div className="max-w-3xl mx-auto py-12 px-4">
+      <p className="text-[11px] tracking-[.18em] uppercase text-[#33d9c4] font-mono mb-2">Screen 02</p>
+      <h1 className="font-display text-2xl font-semibold mb-2">Reviewer Profile Analysis</h1>
+      <p className="text-[#93a3b5] mb-6 text-sm">Enter a reviewer ID to see their full fraud profile.</p>
 
-      <div className="flex gap-3 mb-6">
+      <div className="flex gap-3 mb-7">
         <input
           value={reviewerId}
           onChange={e => setReviewerId(e.target.value)}
           placeholder="e.g. A102RLS4FQLC88"
-          className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="input-field flex-1 px-4 py-2.5 text-sm font-mono"
         />
-        <button
-          onClick={analyse}
-          disabled={loading}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? "Loading..." : "Analyse"}
+        <button onClick={analyse} disabled={loading} className="btn-primary px-6 py-2.5 text-sm">
+          {loading ? "Loading…" : "Analyse"}
         </button>
       </div>
 
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
+        <div className="p-3 rounded-xl border border-[#ef6f6c]/30 bg-[#ef6f6c]/10 text-[#ff9a97] text-sm">{error}</div>
       )}
 
       {result && (
         <div className="space-y-4">
-          {/* Header */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <h2 className="text-lg font-bold">{result.name}</h2>
-            <p className="text-xs text-gray-400">{result.reviewer_id}</p>
+          <div className="panel panel-pad flex items-center justify-between">
+            <div>
+              <h2 className="font-display text-lg font-semibold">{result.name}</h2>
+              <p className="text-xs text-[#5f7186] font-mono mt-0.5">{result.reviewer_id}</p>
+            </div>
+            <div className={`chip chip-${scoreTier}`}>{result.fraud_score} fraud score</div>
           </div>
 
-          {/* Key metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { label: "Total Reviews",    value: result.total_reviews },
-              { label: "Avg Rating",       value: `${result.avg_rating} / 5.0` },
-              { label: "Fraud Score",      value: result.fraud_score, color: scoreColor },
-              { label: "Fraud Flag Rate",  value: `${(result.fraud_flag_rate * 100).toFixed(0)}%` },
+              { label: "Total Reviews",   value: result.total_reviews },
+              { label: "Avg Rating",      value: `${result.avg_rating} / 5.0` },
+              { label: "Fraud Score",     value: result.fraud_score, tier: scoreTier },
+              { label: "Fraud Flag Rate", value: `${(result.fraud_flag_rate * 100).toFixed(0)}%` },
             ].map(m => (
-              <div key={m.label} className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
-                <div className="text-xl font-bold" style={{ color: m.color || "inherit" }}>{m.value}</div>
-                <div className="text-xs text-gray-500 mt-1">{m.label}</div>
+              <div key={m.label} className="stat-card">
+                <div className={`stat-value ${m.tier ? `risk-${m.tier}` : ""}`}>{m.value}</div>
+                <div className="stat-label">{m.label}</div>
               </div>
             ))}
           </div>
 
-          {/* Network + velocity */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="font-semibold text-sm mb-3">🕸️ Network Profile</h3>
-              <div className="space-y-2 text-sm">
+            <div className="panel panel-pad">
+              <h3 className="font-display font-semibold text-sm mb-3">Network Profile</h3>
+              <div className="space-y-2.5 text-sm">
                 {[
                   { label: "Connected Reviewers", value: result.graph_degree },
                   { label: "Community ID",         value: result.community_id },
@@ -95,32 +84,31 @@ function Screen2() {
                   { label: "Ring Fraud Rate",      value: `${(result.ring_fraud_rate * 100).toFixed(1)}%` },
                 ].map(r => (
                   <div key={r.label} className="flex justify-between">
-                    <span className="text-gray-500">{r.label}</span>
-                    <span className="font-medium">{r.value}</span>
+                    <span className="text-[#5f7186]">{r.label}</span>
+                    <span className="font-mono font-medium">{r.value}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="font-semibold text-sm mb-3">📊 Behavioral Stats</h3>
-              <div className="space-y-2 text-sm">
+            <div className="panel panel-pad">
+              <h3 className="font-display font-semibold text-sm mb-3">Behavioral Stats</h3>
+              <div className="space-y-2.5 text-sm">
                 {[
                   { label: "Unique Products", value: result.unique_products },
                   { label: "7-Day Velocity",  value: result.velocity },
                 ].map(r => (
                   <div key={r.label} className="flex justify-between">
-                    <span className="text-gray-500">{r.label}</span>
-                    <span className="font-medium">{r.value}</span>
+                    <span className="text-[#5f7186]">{r.label}</span>
+                    <span className="font-mono font-medium">{r.value}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Verdict */}
-          <div className={`border rounded-lg p-4 ${verdictColor(result.verdict)}`}>
-            <p className="font-bold">{result.verdict}</p>
+          <div className={`panel panel-pad border ${`border-risk-${tier(result.verdict)}`} ${`panel-risk-${tier(result.verdict)}`}`}>
+            <p className={`font-semibold text-sm risk-${tier(result.verdict)}`}>{result.verdict}</p>
           </div>
         </div>
       )}

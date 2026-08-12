@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
-const API = "https://Achintya05-fraud-detection-api.hf.space"
+const API = "http://localhost:8000"
 
 function Screen3() {
   const [rings, setRings]     = useState([])
@@ -14,43 +14,42 @@ function Screen3() {
       .finally(() => setLoading(false))
   }, [])
 
-  const riskLabel = (score) => {
-    if (score > 0.10) return { label: "🚨 High",   cls: "bg-red-100 text-red-700" }
-    if (score > 0.05) return { label: "⚠️ Medium", cls: "bg-yellow-100 text-yellow-700" }
-    return               { label: "✅ Low",    cls: "bg-green-100 text-green-700" }
+  const risk = (score) => {
+    if (score > 0.10) return { label: "High",   tier: "high" }
+    if (score > 0.05) return { label: "Medium", tier: "med" }
+    return               { label: "Low",    tier: "low" }
   }
 
   return (
-    <div className="max-w-5xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-2">🕸️ Fraud Ring Network</h1>
-      <p className="text-gray-500 mb-6">
-        Reviewers connected by shared product reviews. Small tight clusters with high fraud rates are suspicious.
+    <div className="max-w-5xl mx-auto py-12 px-4">
+      <p className="text-[11px] tracking-[.18em] uppercase text-[#33d9c4] font-mono mb-2">Screen 03</p>
+      <h1 className="font-display text-2xl font-semibold mb-2">Fraud Ring Network</h1>
+      <p className="text-[#93a3b5] mb-6 text-sm max-w-2xl">
+        Reviewers connected by shared product reviews. Small, tight-knit clusters with high fraud rates are the ones worth investigating.
       </p>
 
-      {/* PyVis interactive graph */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-        <h2 className="font-semibold text-sm mb-3">Interactive Graph — drag nodes to explore</h2>
+      <div className="panel panel-pad mb-6">
+        <h2 className="font-display font-semibold text-sm mb-3">Interactive Graph — drag nodes to explore</h2>
         <iframe
           src="/fraud_rings.html"
           width="100%"
           height="500px"
-          className="rounded border border-gray-100"
+          className="rounded-xl border border-[#232f3d]"
           title="Fraud Ring Graph"
         />
       </div>
 
-      {/* Ring table */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <h2 className="font-semibold text-sm mb-4">📊 Fraud Ring Statistics</h2>
+      <div className="panel panel-pad">
+        <h2 className="font-display font-semibold text-sm mb-4">Fraud Ring Statistics</h2>
 
-        {loading && <p className="text-gray-500 text-sm">Loading...</p>}
-        {error   && <p className="text-red-500 text-sm">{error}</p>}
+        {loading && <p className="text-[#5f7186] text-sm">Loading…</p>}
+        {error   && <p className="text-[#ff9a97] text-sm">{error}</p>}
 
         {!loading && !error && (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-gray-500">
-                <th className="pb-2">Community ID</th>
+              <tr className="text-left">
+                <th className="pb-2 font-mono">Community</th>
                 <th className="pb-2">Size</th>
                 <th className="pb-2">Fraud Rate</th>
                 <th className="pb-2">Total Reviews</th>
@@ -60,18 +59,16 @@ function Screen3() {
             </thead>
             <tbody>
               {rings.map(ring => {
-                const risk = riskLabel(ring.avg_fraud_score)
+                const r = risk(ring.avg_fraud_score)
                 return (
-                  <tr key={ring.community_id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-2 font-mono">{ring.community_id}</td>
-                    <td className="py-2">{ring.size}</td>
-                    <td className="py-2">{(ring.avg_fraud_score * 100).toFixed(1)}%</td>
-                    <td className="py-2">{ring.total_reviews.toLocaleString()}</td>
-                    <td className="py-2">{ring.products_targeted}</td>
-                    <td className="py-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${risk.cls}`}>
-                        {risk.label}
-                      </span>
+                  <tr key={ring.community_id}>
+                    <td className="py-2.5 font-mono text-[#93a3b5]">{ring.community_id}</td>
+                    <td className="py-2.5">{ring.size}</td>
+                    <td className="py-2.5 font-mono">{(ring.avg_fraud_score * 100).toFixed(1)}%</td>
+                    <td className="py-2.5 font-mono">{ring.total_reviews.toLocaleString()}</td>
+                    <td className="py-2.5">{ring.products_targeted}</td>
+                    <td className="py-2.5">
+                      <span className={`chip chip-${r.tier}`}>{r.label}</span>
                     </td>
                   </tr>
                 )

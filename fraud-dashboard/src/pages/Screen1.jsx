@@ -1,7 +1,7 @@
 import { useState } from "react"
 import axios from "axios"
 
-const API = "https://Achintya05-fraud-detection-api.hf.space"
+const API = "http://localhost:8000"
 
 function Screen1() {
   const [review, setReview]   = useState("")
@@ -29,62 +29,61 @@ function Screen1() {
     }
   }
 
-  const scoreColor = (c) => c >= 0.65 ? "text-red-600" : c >= 0.40 ? "text-yellow-600" : "text-green-600"
-  const barColor   = (c) => c >= 0.65 ? "bg-red-500"  : c >= 0.40 ? "bg-yellow-500"  : "bg-green-500"
-  const bgColor    = (c) => c >= 0.65 ? "bg-red-50 border-red-200" : c >= 0.40 ? "bg-yellow-50 border-yellow-200" : "bg-green-50 border-green-200"
+  const tier = (c) => c >= 0.65 ? "high" : c >= 0.40 ? "med" : "low"
 
   return (
-    <div className="max-w-2xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-2">📝 Review Fraud Analysis</h1>
-      <p className="text-gray-500 mb-6">Paste any Amazon review to check if it's fraudulent</p>
+    <div className="max-w-2xl mx-auto py-12 px-4">
+      <p className="text-[11px] tracking-[.18em] uppercase text-[#33d9c4] font-mono mb-2">Screen 01</p>
+      <h1 className="font-display text-2xl font-semibold mb-2">Review Fraud Analysis</h1>
+      <p className="text-[#93a3b5] mb-6 text-sm">Paste any Amazon review to check whether it looks fraudulent.</p>
 
-      
       <textarea
         rows={5}
         value={review}
         onChange={e => setReview(e.target.value)}
         placeholder="e.g. Amazing product love it best ever perfect highly recommend..."
-        className="w-full border border-gray-300 rounded-lg p-3 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="input-field w-full p-3.5 text-sm resize-y"
       />
 
       <button
         onClick={analyse}
         disabled={loading}
-        className="mt-3 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+        className="btn-primary mt-3 px-6 py-2.5 text-sm"
       >
-        {loading ? "Analysing..." : "Analyse Review"}
+        {loading ? "Analysing…" : "Analyse Review"}
       </button>
 
       {error && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+        <div className="mt-4 p-3 rounded-xl border border-[#ef6f6c]/30 bg-[#ef6f6c]/10 text-[#ff9a97] text-sm">
           {error}
         </div>
       )}
 
       {result && (
-        <div className="mt-6 space-y-4">
-          {/* Score bar */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm text-gray-500">Fraud Probability</span>
-              <span className={`font-bold ${scoreColor(result.confidence)}`}>
-                {(result.confidence * 100).toFixed(1)}%
-              </span>
+        <div className="mt-7 space-y-4">
+          {/* Score + gauge */}
+          <div className="panel panel-pad flex items-center gap-6">
+            <div className="relative w-28 h-28 shrink-0 glow-ring">
+              <svg viewBox="0 0 100 100" className="w-28 h-28 -rotate-90">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#202c3a" strokeWidth="10" />
+                <circle
+                  cx="50" cy="50" r="42" fill="none"
+                  stroke={tier(result.confidence)==="high" ? "#ef6f6c" : tier(result.confidence)==="med" ? "#f0a545" : "#4ade9a"}
+                  strokeWidth="10" strokeLinecap="round"
+                  strokeDasharray={`${result.confidence * 264} 264`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center flex-col">
+                <span className={`font-mono text-lg font-semibold risk-${tier(result.confidence)}`}>{(result.confidence*100).toFixed(0)}%</span>
+              </div>
             </div>
-            <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${barColor(result.confidence)}`}
-                style={{ width: `${result.confidence * 100}%` }}
-              />
+            <div>
+              <p className="text-[11px] uppercase tracking-wider text-[#5f7186] mb-1">Fraud probability</p>
+              <p className={`font-display text-xl font-semibold risk-${tier(result.confidence)}`}>
+                {result.fraud ? "Fraud detected" : "Looks legitimate"}
+              </p>
+              <p className="text-sm text-[#93a3b5] mt-1">{result.verdict}</p>
             </div>
-          </div>
-
-          {/* Verdict */}
-          <div className={`border rounded-lg p-4 ${bgColor(result.confidence)}`}>
-            <p className="font-bold text-lg">
-              {result.fraud ? "🚨 FRAUD DETECTED" : "✅ LOOKS LEGITIMATE"}
-            </p>
-            <p className="text-sm mt-1 text-gray-700">{result.verdict}</p>
           </div>
 
           {/* Stats */}
@@ -94,16 +93,16 @@ function Screen1() {
               { label: "Word Count", value: result.word_count },
               { label: "Threshold",  value: result.threshold },
             ].map(s => (
-              <div key={s.label} className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
-                <div className="text-xl font-bold">{s.value}</div>
-                <div className="text-xs text-gray-500 mt-1">{s.label}</div>
+              <div key={s.label} className="stat-card">
+                <div className="stat-value">{s.value}</div>
+                <div className="stat-label">{s.label}</div>
               </div>
             ))}
           </div>
 
-          {/* Suspicious words highlighted */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <h3 className="font-semibold mb-3 text-sm">🔴 Suspicious Words</h3>
+          {/* Suspicious words */}
+          <div className="panel panel-pad">
+            <h3 className="font-display font-semibold mb-3 text-sm text-[#e7edf3]">Suspicious Words</h3>
             {(() => {
               const suspicious = [
                 'amazing', 'perfect', 'lovely' ,'love', 'best', 'awesome',
@@ -111,44 +110,39 @@ function Screen1() {
                 'incredible', 'outstanding', 'brilliant', 'recommend', 'must',
                 'buy', 'purchase', 'ever', 'life', 'happy'
               ]
-            const words = review.split(' ')
-            const found = [...new Set(words.filter(w => suspicious.includes(w.toLowerCase().replace(/[^a-z]/g, ''))))]
+              const words = review.split(' ')
+              const found = [...new Set(words.filter(w => suspicious.includes(w.toLowerCase().replace(/[^a-z]/g, ''))))]
 
-            return found.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {words.map((word, i) => {
-                const clean = word.toLowerCase().replace(/[^a-z]/g, '')
-                const isSuspicious = suspicious.includes(clean)
-            return (
-              <span
-                key={i}
-                className={`px-2 py-1 rounded text-sm ${
-                  isSuspicious
-                    ? "bg-red-100 text-red-700 font-semibold border border-red-300"
-                    : "text-gray-700"
-                }`}
-              >
-              {word}
-            </span>
-          )
-        })}
-      </div>
-    ) : (
-      <p className="text-sm text-green-600">✅ No suspicious words detected</p>
-    )
-  })()}
-</div>
+              return found.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {words.map((word, i) => {
+                    const clean = word.toLowerCase().replace(/[^a-z]/g, '')
+                    const isSuspicious = suspicious.includes(clean)
+                    return (
+                      <span key={i} className={`word-chip ${isSuspicious ? "word-flag" : "word-plain"}`}>
+                        {word}
+                      </span>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm risk-low">No suspicious words detected</p>
+              )
+            })()}
+          </div>
 
-        {/* Linguistic flags */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <h3 className="font-semibold mb-2 text-sm">🔎 Linguistic Flags</h3>
-          <ul className="space-y-1">
-            {result.flags.map((f, i) => (
-              <li key={i} className="text-sm text-gray-700">{f}</li>
-            ))}
-          </ul>
+          {/* Linguistic flags */}
+          <div className="panel panel-pad">
+            <h3 className="font-display font-semibold mb-2 text-sm text-[#e7edf3]">Linguistic Flags</h3>
+            <ul className="space-y-1.5">
+              {result.flags.map((f, i) => (
+                <li key={i} className="text-sm text-[#93a3b5] flex gap-2">
+                  <span className="text-[#33d9c4] mt-0.5">›</span>{f}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-      </div>
       )}
     </div>
   )
