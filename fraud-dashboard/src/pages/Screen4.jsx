@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import axios from "axios"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts"
 
-const API = "http://localhost:8000"
+const API = "https://Achintya05-fraud-detection-api.hf.space"
 
 function Screen4() {
   const [threshold,          setThreshold]          = useState(0.40)

@@ -1,7 +1,7 @@
 import { useState } from "react"
 import axios from "axios"
 
-const API = "http://localhost:8000"
+const API = "https://Achintya05-fraud-detection-api.hf.space"
 
 function Screen2() {
   const [reviewerId, setReviewerId] = useState("")
@@ -9,13 +9,14 @@ function Screen2() {
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState(null)
 
-  const analyse = async () => {
-    if (!reviewerId.trim()) return
+  const analyse = async (idOverride) => {
+    const targetId = (idOverride ?? reviewerId).trim()
+    if (!targetId) return
     setLoading(true)
     setError(null)
     setResult(null)
     try {
-      const res = await axios.get(`${API}/reviewer/${reviewerId.trim()}`)
+      const res = await axios.get(`${API}/reviewer/${targetId}`)
       setResult(res.data)
     } catch (err) {
       setError(err.response?.status === 404 ? "Reviewer not found in dataset" : "API error — make sure FastAPI is running")
@@ -26,6 +27,15 @@ function Screen2() {
 
   const tier = (v) => v.includes("HIGH") ? "high" : v.includes("MEDIUM") ? "med" : v.includes("LOW") ? "low" : "med"
   const scoreTier = result?.fraud_score >= 0.65 ? "high" : result?.fraud_score >= 0.40 ? "med" : "low"
+
+  const samples = [
+    { id: "A19M7Q82O3DLZG", label: "Ring member (4 links)" },
+    { id: "A2ZIKWLXT7EMHX", label: "Ring member (2 links)" },
+    { id: "A2PFX6WO88KTYB", label: "High-degree hub" },
+    { id: "A1TO4P6JP5CVK5", label: "Isolated (1 link)" },
+  ]
+
+  const runSample = (id) => { setReviewerId(id); analyse(id) }
 
   return (
     <div className="max-w-3xl mx-auto py-12 px-4">
@@ -40,9 +50,23 @@ function Screen2() {
           placeholder="e.g. A102RLS4FQLC88"
           className="input-field flex-1 px-4 py-2.5 text-sm font-mono"
         />
-        <button onClick={analyse} disabled={loading} className="btn-primary px-6 py-2.5 text-sm">
+        <button onClick={() => analyse()} disabled={loading} className="btn-primary px-6 py-2.5 text-sm">
           {loading ? "Loading…" : "Analyse"}
         </button>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-7 -mt-3">
+        <span className="text-xs text-[#5f7186] self-center mr-1">Try:</span>
+        {samples.map(s => (
+          <button
+            key={s.id}
+            onClick={() => runSample(s.id)}
+            disabled={loading}
+            className="px-3 py-1.5 rounded-full text-xs font-medium bg-[#202c3a] text-[#93a3b5] border border-[#2b3849] hover:border-[#33d9c4]/40 hover:text-[#e7edf3] transition"
+          >
+            {s.label}
+          </button>
+        ))}
       </div>
 
       {error && (
@@ -109,6 +133,9 @@ function Screen2() {
 
           <div className={`panel panel-pad border ${`border-risk-${tier(result.verdict)}`} ${`panel-risk-${tier(result.verdict)}`}`}>
             <p className={`font-semibold text-sm risk-${tier(result.verdict)}`}>{result.verdict}</p>
+            <p className="text-xs text-[#5f7186] mt-1.5">
+              Rule-based verdict combining text score, graph degree, and flag rate — not a single learned output.
+            </p>
           </div>
         </div>
       )}
