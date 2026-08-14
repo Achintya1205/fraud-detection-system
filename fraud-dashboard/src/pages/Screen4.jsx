@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts"
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceDot } from "recharts"
 
-const API = "https://Achintya05-fraud-detection-api.hf.space"
+const API = "https://Achintya05-fraud-detection-api.hf.spaceuvicorn"
 
 function Screen4() {
   const [threshold,          setThreshold]          = useState(0.40)
@@ -33,6 +33,10 @@ function Screen4() {
     }).then(res => setResult(res.data))
       .catch(() => {})
   }, [threshold, dailyVolume, investigationCost, fraudRate])
+
+  // current threshold's position on the fixed PR curve — moves as the slider moves
+  const currentPrecision = Math.min(0.50 + 0.45 * Math.pow(threshold, 0.6), 1)
+  const currentRecall    = Math.max(1.0  - 0.95 * Math.pow(threshold, 1.2), 0)
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4">
@@ -80,14 +84,23 @@ function Screen4() {
 
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="panel panel-pad">
-          <h3 className="font-display font-semibold text-sm mb-3">Precision–Recall Curve</h3>
+          <div className="flex items-baseline justify-between mb-3">
+            <h3 className="font-display font-semibold text-sm">Precision–Recall Curve</h3>
+            <span className="text-[11px] text-[#5f7186] font-mono">● marker = current threshold</span>
+          </div>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={prCurve}>
-              <XAxis dataKey="recall" stroke="#5f7186" label={{ value: "Recall", position: "insideBottom", offset: -2, fill:"#5f7186" }} tick={{ fontSize: 11, fill:"#5f7186" }} />
-              <YAxis dataKey="precision" stroke="#5f7186" label={{ value: "Precision", angle: -90, position: "insideLeft", fill:"#5f7186" }} tick={{ fontSize: 11, fill:"#5f7186" }} />
+              <XAxis dataKey="recall" stroke="#5f7186" domain={[0, 1]} label={{ value: "Recall", position: "insideBottom", offset: -2, fill:"#5f7186" }} tick={{ fontSize: 11, fill:"#5f7186" }} />
+              <YAxis dataKey="precision" stroke="#5f7186" domain={[0, 1]} label={{ value: "Precision", angle: -90, position: "insideLeft", fill:"#5f7186" }} tick={{ fontSize: 11, fill:"#5f7186" }} />
               <Tooltip contentStyle={{ background:"#1a2430", border:"1px solid #2b3849", borderRadius:10, fontSize:12 }} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Line type="monotone" dataKey="precision" stroke="#33d9c4" dot={false} strokeWidth={2} />
+              <ReferenceDot
+                x={parseFloat(currentRecall.toFixed(3))}
+                y={parseFloat(currentPrecision.toFixed(3))}
+                r={6} fill="#f0a545" stroke="#10161d" strokeWidth={2}
+                ifOverflow="extendDomain"
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>

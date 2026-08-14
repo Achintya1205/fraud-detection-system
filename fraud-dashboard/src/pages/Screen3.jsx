@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
-const API = "https://Achintya05-fraud-detection-api.hf.space"
+const API = "https://Achintya05-fraud-detection-api.hf.spaceuvicorn"
 
 function Screen3() {
   const [rings, setRings]     = useState([])

@@ -5,6 +5,7 @@ import Screen2 from "./pages/Screen2"
 import Screen3 from "./pages/Screen3"
 import Screen4 from "./pages/Screen4"
 import Screen5 from "./pages/Screen5"
+import Screen6 from "./pages/Screen6"
 
 function App() {
   const [active, setActive] = useState(1)
@@ -18,6 +19,7 @@ function App() {
         {active === 3 && <Screen3 />}
         {active === 4 && <Screen4 />}
         {active === 5 && <Screen5 />}
+        {active === 6 && <Screen6 />}
       </main>
     </div>
   )

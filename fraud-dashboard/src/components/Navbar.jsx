@@ -5,6 +5,7 @@ function Navbar({ active, setActive }) {
     { id: 3, label: "Fraud Rings" },
     { id: 4, label: "Cost Calculator" },
     { id: 5, label: "Batch Scan" },
+    { id: 6, label: "Model Metrics" },
   ]
 
   return (
