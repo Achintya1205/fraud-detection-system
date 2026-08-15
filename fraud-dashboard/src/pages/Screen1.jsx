@@ -1,7 +1,7 @@
 import { useState } from "react"
 import axios from "axios"
 
-const API = "https://Achintya05-fraud-detection-api.hf.spaceuvicorn"
+const API = "https://achintya05-fraud-detection-api.hf.space"
 
 function Screen1() {
   const [review, setReview]   = useState("")
