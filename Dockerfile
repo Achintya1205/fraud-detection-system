@@ -12,4 +12,4 @@ COPY fraud_rings.csv .
 
 EXPOSE 7860
 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["python", "-u", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "7860"]
