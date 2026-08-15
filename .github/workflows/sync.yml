@@ -13,6 +13,12 @@ jobs:
         with:
           fetch-depth: 0
           lfs: true
+
+      - name: Configure git identity
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+
       - name: Push squashed snapshot to HF Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -20,4 +26,4 @@ jobs:
           git checkout --orphan hf-deploy
           git add -A
           git commit -m "Deploy ${{ github.sha }}"
-          git push https://Achintya05:$HF_TOKEN@huggingface.co/spaces/Achintya05/fraud-detection-api hf-deploy:main -f
+          git -c credential.helper= push https://Achintya05:$HF_TOKEN@huggingface.co/spaces/Achintya05/fraud-detection-api hf-deploy:main -f
