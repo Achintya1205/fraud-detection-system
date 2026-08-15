@@ -36,7 +36,7 @@ function Screen2() {
   ]
 
   const runSample = (id) => { setReviewerId(id); analyse(id) }
-
+  
   return (
     <div className="max-w-3xl mx-auto py-12 px-4">
       <p className="text-[11px] tracking-[.18em] uppercase text-[#33d9c4] font-mono mb-2">Screen 02</p>
