@@ -9,6 +9,7 @@ COPY api/ ./api/
 COPY processed_reviews_slim.csv .
 COPY graph_features.csv .
 COPY fraud_rings.csv .
+COPY pr_curve.json .
 
 EXPOSE 7860
 

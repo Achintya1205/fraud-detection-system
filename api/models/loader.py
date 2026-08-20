@@ -1,29 +1,31 @@
+import json
 import torch
 import pandas as pd
 from transformers import RobertaForSequenceClassification, RobertaTokenizer
 
-# ── Constants ─────────────────────────────────────────────────
+# Constants
 MODEL_NAME = 'Achintya05/review-fraud-roberta'
 THRESHOLD = 0.40
 
-# ── Device ────────────────────────────────────────────────────
+# Device 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# ── Model + Tokenizer (loaded once at startup) ────────────────
+# Model + Tokenizer + Data
 model = None
 tokenizer = None
 df = None
 graph_features = None
 fraud_rings = None
+pr_curve = None
 
 
 def load_all():
-    global model, tokenizer, df, graph_features, fraud_rings
+    global model, tokenizer, df, graph_features, fraud_rings, pr_curve
 
     print(f"Loading model from {MODEL_NAME}...")
     model = RobertaForSequenceClassification.from_pretrained(
-    MODEL_NAME,
-    torch_dtype=torch.float16,  # half precision — cuts memory ~50%
+        MODEL_NAME,
+        torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
     )
     model.to(device)
     model.eval()
@@ -33,10 +35,15 @@ def load_all():
 
     print("Loading data...")
     df = pd.read_csv('./processed_reviews_slim.csv',
-                     compression='gzip', low_memory=False)
+                      compression='gzip', low_memory=False)
     graph_features = pd.read_csv('./graph_features.csv')
     fraud_rings = pd.read_csv('./fraud_rings.csv')
     print(f"Data loaded — {len(df)} reviews")
+
+    print("Loading precomputed PR curve...")
+    with open('./pr_curve.json') as f:
+        pr_curve = json.load(f)
+    print(f"PR curve loaded — {len(pr_curve['points'])} points")
 
 
 def get_model():
@@ -61,3 +68,7 @@ def get_graph_features():
 
 def get_fraud_rings():
     return fraud_rings
+
+
+def get_pr_curve():
+    return pr_curve
