@@ -36,3 +36,6 @@ lerna-debug.log*
 
 venv/
 .env
+
+pr_curve_log.txt
+pr_curve_err.txt

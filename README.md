@@ -115,7 +115,6 @@ Trained on a fixed Amazon Reviews dataset (offline, not live production traffic)
 
 - Evaluated offline on a static dataset — no feedback loop from real investigator outcomes yet.
 - The reviewer-verdict logic (`api/routes/reviewer.py`) combines signals (text score, graph degree, flag rate) with fixed, hand-set thresholds rather than a learned meta-model. This is a deliberate choice for interpretability — an analyst can see exactly why a reviewer was flagged — rather than a shortcut; a natural next step is a learned meta-model once enough labeled combined-signal outcomes exist to validate one properly.
-- fp16 inference is only used when a GPU is available (`torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32`) — CPU-only deployments run in fp32, which is correct but slower than a GPU deployment would be.
 
 ## License
 
