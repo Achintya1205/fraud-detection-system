@@ -1,17 +1,26 @@
-
 import json
 import time
 import torch
 import numpy as np
 import pandas as pd
-from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import (
+    precision_recall_curve,
+    average_precision_score,
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix,
+)
 from sklearn.model_selection import train_test_split
 from transformers import RobertaForSequenceClassification, RobertaTokenizer
 
 MODEL_NAME = 'Achintya05/review-fraud-roberta'
 RANDOM_STATE = 42   
-SAMPLE_SIZE = 6000     
-BATCH_SIZE = 64 
+SAMPLE_SIZE = 6000  
+BATCH_SIZE = 64   
+PRODUCTION_THRESHOLD = 0.40  
+
 
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -27,13 +36,15 @@ def main():
     _, test_df = train_test_split(
         df, test_size=0.2, random_state=RANDOM_STATE, stratify=df['fraud_flag']
     )
-
     if len(test_df) > SAMPLE_SIZE:
         test_df, _ = train_test_split(
             test_df, train_size=SAMPLE_SIZE, random_state=RANDOM_STATE,
             stratify=test_df['fraud_flag']
         )
-    print(f"Scoring {len(test_df)} sampled reviews (stratified, batch size {BATCH_SIZE})...")
+    fraud_count = int(test_df['fraud_flag'].sum())
+    print(f"Scoring {len(test_df)} sampled reviews "
+          f"({fraud_count} fraud / {len(test_df) - fraud_count} legit — "
+          f"{fraud_count/len(test_df)*100:.1f}% fraud rate, real distribution)")
 
     probs = []
     texts = test_df['reviewText'].astype(str).tolist()
@@ -42,7 +53,6 @@ def main():
 
     for i in range(0, len(texts), BATCH_SIZE):
         batch = texts[i:i + BATCH_SIZE]
-
         enc = tokenizer(batch, padding=True, truncation=True,
                          max_length=128, return_tensors='pt')
         with torch.no_grad():
@@ -59,13 +69,16 @@ def main():
               f"— ~{remaining/60:.1f} min remaining")
 
     labels = test_df['fraud_flag'].tolist()
+    probs_arr = np.array(probs)
+    labels_arr = np.array(labels)
+
     precisions, recalls, thresholds = precision_recall_curve(labels, probs)
-    precisions, recalls = precisions[:-1], recalls[:-1] 
+    precisions_trim, recalls_trim = precisions[:-1], recalls[:-1]
 
     order = np.argsort(thresholds)
     grid = np.round(np.arange(0.01, 1.00, 0.01), 2)
-    grid_p = np.interp(grid, thresholds[order], precisions[order])
-    grid_r = np.interp(grid, thresholds[order], recalls[order])
+    grid_p = np.interp(grid, thresholds[order], precisions_trim[order])
+    grid_r = np.interp(grid, thresholds[order], recalls_trim[order])
 
     curve = [{"threshold": float(t), "precision": round(float(p), 4), "recall": round(float(r), 4)}
              for t, p, r in zip(grid, grid_p, grid_r)]
@@ -73,9 +86,33 @@ def main():
     with open('pr_curve.json', 'w') as f:
         json.dump({"test_size": len(test_df), "points": curve}, f, indent=2)
 
+    preds = (probs_arr >= PRODUCTION_THRESHOLD).astype(int)
+    cm = confusion_matrix(labels_arr, preds) 
+    tn, fp, fn, tp = cm.ravel()
+
+    realworld_metrics = {
+        "sample_size": len(test_df),
+        "fraud_count": fraud_count,
+        "fraud_rate_pct": round(fraud_count / len(test_df) * 100, 2),
+        "threshold": PRODUCTION_THRESHOLD,
+        "accuracy": round(accuracy_score(labels_arr, preds), 4),
+        "precision": round(precision_score(labels_arr, preds, zero_division=0), 4),
+        "recall": round(recall_score(labels_arr, preds, zero_division=0), 4),
+        "f1": round(f1_score(labels_arr, preds, zero_division=0), 4),
+        "pr_auc": round(average_precision_score(labels_arr, probs_arr), 4),
+        "confusion_matrix": {
+            "tp": int(tp), "fp": int(fp), "fn": int(fn), "tn": int(tn)
+        }
+    }
+
+    with open('realworld_metrics.json', 'w') as f:
+        json.dump(realworld_metrics, f, indent=2)
+
     total_min = (time.time() - start) / 60
-    print(f"Done in {total_min:.1f} min. Saved pr_curve.json with {len(curve)} points "
-          f"(sampled from {len(test_df)} reviews).")
+    print(f"\nDone in {total_min:.1f} min.")
+    print(f"Saved pr_curve.json with {len(curve)} points.")
+    print(f"Saved realworld_metrics.json:")
+    print(json.dumps(realworld_metrics, indent=2))
 
 
 if __name__ == '__main__':

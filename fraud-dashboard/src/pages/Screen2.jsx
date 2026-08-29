@@ -1,7 +1,7 @@
 import { useState } from "react"
 import axios from "axios"
 
-const API = "https://achintya05-fraud-detection-api.hf.space"
+const API = import.meta.env.VITE_API_URL || "https://achintya05-fraud-detection-api.hf.space"
 
 function Screen2() {
   const [reviewerId, setReviewerId] = useState("")

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import axios from "axios"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceDot } from "recharts"
 
-const API = "https://achintya05-fraud-detection-api.hf.space"
+const API = import.meta.env.VITE_API_URL || "https://achintya05-fraud-detection-api.hf.space"
 
 function Screen4() {
   const [threshold,          setThreshold]          = useState(0.40)
@@ -11,15 +11,32 @@ function Screen4() {
   const [fraudRate,          setFraudRate]          = useState(5)
   const [result,             setResult]             = useState(null)
   const [prCurve,            setPrCurve]            = useState([])
-
+  const [curveError,         setCurveError]         = useState(null)
+  const [curveLoading,       setCurveLoading]       = useState(true)
+  
   useEffect(() => {
+    setCurveLoading(true)
+    setCurveError(null)
     axios.get(`${API}/graph/pr-curve`)
-      .then(res => setPrCurve(res.data.points.map(p => ({
-        threshold: p.threshold,
-        recall: p.recall,
-        precision: p.precision
-      }))))
-      .catch(() => {})
+      .then(res => {
+        const points = res.data?.points ?? []
+        if (points.length === 0) {
+          setCurveError("PR curve endpoint returned no points — check pr_curve.json is present on the API.")
+          return
+        }
+        const sorted = [...points]
+          .map(p => ({ threshold: p.threshold, recall: p.recall, precision: p.precision }))
+          .sort((a, b) => a.recall - b.recall)
+        setPrCurve(sorted)
+      })
+      .catch(err => {
+        setCurveError(
+          err.response
+            ? `API error ${err.response.status} on /graph/pr-curve`
+            : "Could not reach /graph/pr-curve — is the API running and reachable?"
+        )
+      })
+      .finally(() => setCurveLoading(false))
   }, [])
 
   useEffect(() => {
@@ -38,7 +55,10 @@ function Screen4() {
     <div className="max-w-4xl mx-auto py-12 px-4">
       <p className="text-[11px] tracking-[.18em] uppercase text-[#33d9c4] font-mono mb-2">Screen 04</p>
       <h1 className="font-display text-2xl font-semibold mb-2">Investigation Cost Calculator</h1>
-      <p className="text-[#93a3b5] mb-6 text-sm">Adjust the threshold and business parameters to estimate real-world investigation costs.</p>
+      <p className="text-[#93a3b5] mb-2 text-sm">Adjust the threshold and business parameters to estimate real-world investigation costs.</p>
+      <p className="text-[#5f7186] mb-6 text-xs italic">
+        Precision/recall here are computed on a sample preserving the real-world fraud rate — this shows expected production performance, not the balanced-evaluation metrics reported on the Model Metrics screen.
+      </p>
 
       <div className="grid grid-cols-2 gap-4 mb-6">
         {[
@@ -84,23 +104,50 @@ function Screen4() {
             <h3 className="font-display font-semibold text-sm">Precision–Recall Curve</h3>
             <span className="text-[11px] text-[#5f7186] font-mono">● marker = current threshold</span>
           </div>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={prCurve}>
-              <XAxis dataKey="recall" stroke="#5f7186" domain={[0, 1]} label={{ value: "Recall", position: "insideBottom", offset: -2, fill:"#5f7186" }} tick={{ fontSize: 11, fill:"#5f7186" }} />
-              <YAxis dataKey="precision" stroke="#5f7186" domain={[0, 1]} label={{ value: "Precision", angle: -90, position: "insideLeft", fill:"#5f7186" }} tick={{ fontSize: 11, fill:"#5f7186" }} />
-              <Tooltip contentStyle={{ background: "#1a2430", border: "1px solid #2b3849", borderRadius: 10, fontSize: 12 }} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="precision" stroke="#33d9c4" dot={false} strokeWidth={2} />
-              {result && (
-                <ReferenceDot
-                  x={result.recall}
-                  y={result.precision}
-                  r={6} fill="#f0a545" stroke="#10161d" strokeWidth={2}
-                  ifOverflow="extendDomain"
+
+          {curveLoading && (
+            <p className="text-[#5f7186] text-sm py-16 text-center">Loading curve…</p>
+          )}
+
+          {!curveLoading && curveError && (
+            <div className="p-3 rounded-xl border border-[#ef6f6c]/30 bg-[#ef6f6c]/10 text-[#ff9a97] text-sm">
+              {curveError}
+            </div>
+          )}
+
+          {!curveLoading && !curveError && prCurve.length > 0 && (
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={prCurve}>
+                <XAxis
+                  type="number"
+                  dataKey="recall"
+                  stroke="#5f7186"
+                  domain={[0, 1]}
+                  label={{ value: "Recall", position: "insideBottom", offset: -2, fill: "#5f7186" }}
+                  tick={{ fontSize: 11, fill: "#5f7186" }}
                 />
-              )}
-            </LineChart>
-          </ResponsiveContainer>
+                <YAxis
+                  type="number"
+                  dataKey="precision"
+                  stroke="#5f7186"
+                  domain={[0, 1]}
+                  label={{ value: "Precision", angle: -90, position: "insideLeft", fill: "#5f7186" }}
+                  tick={{ fontSize: 11, fill: "#5f7186" }}
+                />
+                <Tooltip contentStyle={{ background: "#1a2430", border: "1px solid #2b3849", borderRadius: 10, fontSize: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Line type="monotone" dataKey="precision" stroke="#33d9c4" dot={false} strokeWidth={2} isAnimationActive={false} />
+                {result && (
+                  <ReferenceDot
+                    x={result.recall}
+                    y={result.precision}
+                    r={6} fill="#f0a545" stroke="#10161d" strokeWidth={2}
+                    ifOverflow="extendDomain"
+                  />
+                )}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {result && (
