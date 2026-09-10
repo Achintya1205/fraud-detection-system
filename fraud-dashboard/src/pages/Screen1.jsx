@@ -4,10 +4,11 @@ import axios from "axios"
 const API = import.meta.env.VITE_API_URL || "https://achintya05-fraud-detection-api.hf.space"
 
 function Screen1() {
-  const [review, setReview]   = useState("")
-  const [result, setResult]   = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState(null)
+  const [review, setReview]     = useState("")
+  const [reviewerId, setReviewerId] = useState("")
+  const [result, setResult]     = useState(null)
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState(null)
 
   const analyse = async () => {
     if (!review.trim()) return
@@ -15,27 +16,40 @@ function Screen1() {
     setError(null)
     setResult(null)
     try {
-      const [pred, expl] = await Promise.all([
-        axios.post(`${API}/predict/`, { text: review }),
-        axios.post(`${API}/explain/`,  { text: review, confidence: 0 })
-      ])
-      const confidence = pred.data.confidence
-      const explRes    = await axios.post(`${API}/explain/`, { text: review, confidence })
-      setResult({ ...pred.data, flags: explRes.data.linguistic_flags, risk_level: explRes.data.risk_level })
+      const predRes = await axios.post(`${API}/predict/`, {
+        text: review,
+        reviewer_id: reviewerId.trim() || null
+      })
+
+      const explRes = await axios.post(`${API}/explain/`, {
+        text: review,
+        confidence: predRes.data.confidence,
+        reviewer_id: reviewerId.trim() || null,
+        roberta_score: predRes.data.roberta_score,
+        lightgbm_score: predRes.data.lightgbm_score
+      })
+
+      setResult({
+        ...predRes.data,
+        linguistic_flags: explRes.data.linguistic_flags,
+        behavioral_flags: explRes.data.behavioral_flags,
+        fusion_breakdown: explRes.data.fusion_breakdown,
+        risk_level: explRes.data.risk_level
+      })
     } catch {
-      setError("API error — make sure FastAPI is running on port 8000")
+      setError("API error — make sure FastAPI is running")
     } finally {
       setLoading(false)
     }
   }
 
-  const tier = (c) => c >= 0.65 ? "high" : c >= 0.40 ? "med" : "low"
+  const tier = (c) => c >= 0.65 ? "high" : c >= (result?.threshold ?? 0.40) ? "med" : "low"
 
   return (
     <div className="max-w-2xl mx-auto py-12 px-4">
       <p className="text-[11px] tracking-[.18em] uppercase text-[#33d9c4] font-mono mb-2">Screen 01</p>
       <h1 className="font-display text-2xl font-semibold mb-2">Review Fraud Analysis</h1>
-      <p className="text-[#93a3b5] mb-6 text-sm">Paste any Amazon review to check whether it looks fraudulent.</p>
+      <p className="text-[#93a3b5] mb-6 text-sm">Paste a review to check whether it looks fraudulent.</p>
 
       <textarea
         rows={5}
@@ -43,6 +57,13 @@ function Screen1() {
         onChange={e => setReview(e.target.value)}
         placeholder="e.g. Amazing product love it best ever perfect highly recommend..."
         className="input-field w-full p-3.5 text-sm resize-y"
+      />
+
+      <input
+        value={reviewerId}
+        onChange={e => setReviewerId(e.target.value)}
+        placeholder="Reviewer ID (optional — enables the full ensemble score)"
+        className="input-field w-full p-3 text-sm font-mono mt-3"
       />
 
       <button
@@ -61,6 +82,16 @@ function Screen1() {
 
       {result && (
         <div className="mt-7 space-y-4">
+
+          <div className="flex items-center gap-2">
+            <span className={`chip ${result.method === "ensemble" ? "chip-low" : "chip-med"}`}>
+              {result.method === "ensemble" ? "Ensemble (RoBERTa + LightGBM)" : "Text-only fallback"}
+            </span>
+            {result.method !== "ensemble" && (
+              <span className="text-xs text-[#5f7186]">add a reviewer ID above for the full ensemble score</span>
+            )}
+          </div>
+
           {/* Score + gauge */}
           <div className="panel panel-pad flex items-center gap-6">
             <div className="relative w-28 h-28 shrink-0 glow-ring">
@@ -86,62 +117,67 @@ function Screen1() {
             </div>
           </div>
 
-          {/* Stats */}
+          {/* Component scores */}
           <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: "Confidence", value: `${(result.confidence * 100).toFixed(1)}%` },
-              { label: "Word Count", value: result.word_count },
-              { label: "Threshold",  value: result.threshold },
-            ].map(s => (
-              <div key={s.label} className="stat-card">
-                <div className="stat-value">{s.value}</div>
-                <div className="stat-label">{s.label}</div>
-              </div>
-            ))}
+            <div className="stat-card">
+              <div className="stat-value">{(result.roberta_score * 100).toFixed(1)}%</div>
+              <div className="stat-label">RoBERTa (text)</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{result.lightgbm_score !== null ? `${(result.lightgbm_score * 100).toFixed(1)}%` : "—"}</div>
+              <div className="stat-label">LightGBM (behavior)</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{result.threshold.toFixed(3)}</div>
+              <div className="stat-label">Threshold used</div>
+            </div>
           </div>
 
-          {/* Suspicious words */}
-          <div className="panel panel-pad">
-            <h3 className="font-display font-semibold mb-3 text-sm text-[#e7edf3]">Suspicious Words</h3>
-            {(() => {
-              const suspicious = [
-                'amazing', 'perfect', 'lovely' ,'love', 'best', 'awesome',
-                'excellent', 'great', 'fantastic', 'wonderful', 'superb',
-                'incredible', 'outstanding', 'brilliant', 'recommend', 'must',
-                'buy', 'purchase', 'ever', 'life', 'happy'
-              ]
-              const words = review.split(' ')
-              const found = [...new Set(words.filter(w => suspicious.includes(w.toLowerCase().replace(/[^a-z]/g, ''))))]
-
-              return found.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {words.map((word, i) => {
-                    const clean = word.toLowerCase().replace(/[^a-z]/g, '')
-                    const isSuspicious = suspicious.includes(clean)
-                    return (
-                      <span key={i} className={`word-chip ${isSuspicious ? "word-flag" : "word-plain"}`}>
-                        {word}
-                      </span>
-                    )
-                  })}
+          {/* Fusion breakdown */}
+          {result.fusion_breakdown && (
+            <div className="panel panel-pad">
+              <h3 className="font-display font-semibold mb-3 text-sm text-[#e7edf3]">How the two signals combined</h3>
+              <div className="flex items-center gap-3 text-sm">
+                <span className="text-[#93a3b5]">Text signal</span>
+                <div className="track-bar h-2 flex-1">
+                  <div className="track-fill bg-[#33d9c4] h-full" style={{ width: `${result.fusion_breakdown.roberta_contribution_pct}%` }} />
                 </div>
-              ) : (
-                <p className="text-sm risk-low">No suspicious words detected</p>
-              )
-            })()}
-          </div>
+                <span className="font-mono w-12 text-right">{result.fusion_breakdown.roberta_contribution_pct}%</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm mt-2">
+                <span className="text-[#93a3b5]">Behavior signal</span>
+                <div className="track-bar h-2 flex-1">
+                  <div className="track-fill bg-[#f0a545] h-full" style={{ width: `${result.fusion_breakdown.lightgbm_contribution_pct}%` }} />
+                </div>
+                <span className="font-mono w-12 text-right">{result.fusion_breakdown.lightgbm_contribution_pct}%</span>
+              </div>
+            </div>
+          )}
 
           {/* Linguistic flags */}
           <div className="panel panel-pad">
-            <h3 className="font-display font-semibold mb-2 text-sm text-[#e7edf3]">Linguistic Flags</h3>
+            <h3 className="font-display font-semibold mb-2 text-sm text-[#e7edf3]">Text Flags</h3>
             <ul className="space-y-1.5">
-              {result.flags.map((f, i) => (
+              {result.linguistic_flags.map((f, i) => (
                 <li key={i} className="text-sm text-[#93a3b5] flex gap-2">
                   <span className="text-[#33d9c4] mt-0.5">›</span>{f}
                 </li>
               ))}
             </ul>
           </div>
+
+          {/* Behavioral flags */}
+          <div className="panel panel-pad">
+            <h3 className="font-display font-semibold mb-2 text-sm text-[#e7edf3]">Behavioral / Network Flags</h3>
+            <ul className="space-y-1.5">
+              {result.behavioral_flags.map((f, i) => (
+                <li key={i} className="text-sm text-[#93a3b5] flex gap-2">
+                  <span className="text-[#f0a545] mt-0.5">›</span>{f}
+                </li>
+              ))}
+            </ul>
+          </div>
+
         </div>
       )}
     </div>

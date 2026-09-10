@@ -6,6 +6,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY api/ ./api/
+COPY models/lightgbm_behavioral.joblib ./models/
+COPY models/fusion_model.joblib ./models/
+COPY models/ensemble_config.joblib ./models/
 COPY processed_reviews_slim.csv .
 COPY graph_features.csv .
 COPY fraud_rings.csv .
