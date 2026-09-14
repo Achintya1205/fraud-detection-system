@@ -23,7 +23,10 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          git lfs install
           git checkout --orphan hf-deploy
+          git lfs track "*.joblib" "*.pkl" "*.safetensors" "*.bin"
+          git add .gitattributes
           git add -A
           git commit -m "Deploy ${{ github.sha }}"
           git -c credential.helper= push https://Achintya05:$HF_TOKEN@huggingface.co/spaces/Achintya05/fraud-detection-api hf-deploy:main -f
